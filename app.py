@@ -8,7 +8,7 @@ from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, func
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 
 #################################################
 # Database Setup
@@ -43,7 +43,7 @@ def welcome():
         f"/api/v1.0/stations<br/>"
         f"/api/v1.0/tobs<br/>"
         f"/api/v1.0/start_date_only/<start><br/>"
-        f"/api/v1.0/start_end/<start>/<end>"
+        f"/api/v1.0/start_end/<start><end>"
     )
 
 @app.route("/api/v1.0/precipitation")
@@ -97,52 +97,62 @@ def tobs():
 
     return jsonify(all_tobi)
 
-#@app.route("/api/v1.0/start_date_only/<start>") 
+@app.route("/api/v1.0/start_date_only/<start>") 
 
-#def startonly(start):
+def startdateonly(start):
 
-#for x in x:
+    session = Session(engine)
 
-        #if search_term == 20170101:
-            #return jsonify(character)
-
-    #return jsonify({"error": "Character not found."}), 404
-
-
-
-    # Create our session (link) from Python to the DB
-    #session = Session(engine)
+    #TO DO: for all stations
+    ## 1.) Extract user input into variable
     
-    #start_date = "%Y-%m-%d"
-
-   # if start_date >= 2017,1,1
-        #previous_year_start = dt.date(2018,1,1)-dt.timedelta(days=365)
-        #previous_year_end = dt.date(2018,1,7)-dt.timedelta(days=365)
-
-        #tmin, tavg, tmax = calc_temps(previous_year_start.strftime("%Y-%m-%d"), previous_year_end.strftime("%Y-%m-%d"))[0]
-
-        #return jsonify(tmin, tavg, tmax)
-    #else:
-        #return jsonify({"error": f"Date not found. Try a date between 2017-1-1 or later."}), 404  
-
-#@app.route("/api/v1.0/start_end/<start>/<end>") 
-
-#def startend(start, end):
+    # print(start)
+    date = start.split("-")
+    year = int(date[0])
+    month = int(date[1])
+    day = int(date[2])
+    start_date = dt.date(year, month, day)
     
-    # Create our session (link) from Python to the DB
-    #session = Session(engine)
+
+    ## 2.) Build query based on user input
+            #session.query = query
+            #filter on date = filter      
+   
+    start_date_input = session.query(func.min(Measurement.tobs), func.max(Measurement.tobs), func.avg(Measurement.tobs)).\
+        filter(Measurement.date>=start_date).all()
+   
     
-    #start_date = "%Y-%m-%d"
+    ## 3.) jsonify results
+    session.close()
+    return jsonify(start_date_input)
+        
+@app.route("/api/v1.0/start_end/<start>/<end>") 
+  
+def startend(start, end):
 
-   # if start_date >= 2017,1,1
-        #previous_year_start = dt.date(2018,1,1)-dt.timedelta(days=365)
-        #previous_year_end = dt.date(2018,1,7)-dt.timedelta(days=365)
+    session = Session(engine)
 
-        #tmin, tavg, tmax = calc_temps(previous_year_start.strftime("%Y-%m-%d"), previous_year_end.strftime("%Y-%m-%d"))[0]
+    date = start.split("-")
+    year = int(date[0])
+    month = int(date[1])
+    day = int(date[2])
+    start_date = dt.date(year, month, day)
 
-        #return jsonify(tmin, tavg, tmax)
-    #else:
-        #return jsonify({"error": f"Date not found. Try a date between 2017-1-1 or later."}), 404  
+    date = end.split("-")
+    year = int(date[0])
+    month = int(date[1])
+    day = int(date[2])
+    end_date = dt.date(year, month, day)
 
+    #2.) Remove station filter, customize date filter 
+  
+    start_end_date_input = session.query(func.min(Measurement.tobs), func.max(Measurement.tobs), func.avg(Measurement.tobs)).\
+        filter(Measurement.date>=start_date).\
+        filter(Measurement.date<=end_date).all()
+    
+    session.close()
+    return jsonify(start_end_date_input)
+    
 if __name__ == '__main__':
     app.run(debug=True)
+
